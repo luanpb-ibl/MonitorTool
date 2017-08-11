@@ -1,17 +1,15 @@
 var config = require('./config')
-
 // implement socket here
-var fullNodeSocket = require('socket.io-client')('http://172.104.57.227:8545');
-var parserSocket = require('socket.io-client')('http://172.104.57.227:8888');
-var socketServerSocket = require('socket.io-client')('http://172.104.32.125:4002');
-
-var eth_blockNumber = require('socket.io-client')('https://ropsten.etherscan.io/api?module=proxy&action=eth_blockNumber');
+var fullNodeSocket = require('socket.io-client')(config.fullnodeSocket);
+var parserSocket = require('socket.io-client')(config.parserSocket);
+var socketServerSocket = require('socket.io-client')(config.socketServer);
+var etherCurrentBlockUrl = require('socket.io-client')(config.etherCurrentBlockUrl);
 
 // monitor socket server   
 socketServerSocket.on('connect', function(){
     console.log("socket conect server")
     // dang ky socket
-    socketServerSocket.emit('QNT');
+   // socketServerSocket.emit('QNT');
     // cho nhan socket data
     socketServerSocket.on('new-block', function(data){
         console.log('socketServerSocket receive data: ', data);
@@ -50,14 +48,10 @@ socketServerSocket.on('disconnect', function(){
 
 // -----------------------
 function start() {
-    console.log('monitor tool started')
-    console.log(config)
-    console.log(typeof Promise);
     fetch('https://ropsten.etherscan.io/api?module=proxy&action=eth_blockNumber')
     .then(res=>res.json())
     .then(z=>{
         console.log(z)
     })
 }
-
 module.exports = start
