@@ -1,0 +1,22 @@
+Build monitor script cho fullnode, blockparser, socket
+
+
+Mục đích: kiểm tra block hiện tại của fullnode và blockparser cũng như socket có trễ hơn so với etherscan hay không. Nếu trễ hơn N phút (ví dụ 5 phút) thì sẽ gửi thông báo cho 1 list email.
+
+Hướng dẫn:
+NodeJS app
+Sử dụng web3, socket IO client packages
+Đăng ký new-block event với full node (1)
+Đăng ký new block event với parser (2)
+Đăng ký new block event với socket (3)
+Nghiên cứu lấy block hiện tại trên etherscan thông qua socket (4)
+So sánh block hiện tại của (4) với (1) (2) (3). Rồi dựa vào điều kiện quyết định gửi email hay không.
+
+
+Các URLs lưu trong file config.js. Chia group theo từng network: ROPSTEN_TESTNET, STAGING_MAINNET, PRODUCTION_MAINNET
+
+Full-node UR: http://172.104.57.227:8545
+Parser socket URL: http://172.104.57.227:8888
+Socket server URL: http://172.104.32.125:4002
+Etherscan (API): https://ropsten.etherscan.io/api?module=proxy&action=eth_blockNumber
+
