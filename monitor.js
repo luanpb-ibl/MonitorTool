@@ -16,7 +16,7 @@ socketServerSocket.on('connect', function(){
     });
 });
 socketServerSocket.on('disconnect', function(){
-    console.log('socketServerSocket disconnected');  
+    console.log('socketServerSocket disconnected');   
 });
 
 // monitor parser
