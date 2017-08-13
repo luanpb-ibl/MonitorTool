@@ -18,8 +18,8 @@ socketServerSocket.on('connect', function(){
     },1000)
     socketServerSocket.on('new-block', function(data){
         console.log('socketServerSocket receive data: ', data.number + " timestamp: " +data.timestamp + "time: " +tick +"s");
-        tick=0;
-        tick=1;
+        tick=2;
+      
     });
 
 });
