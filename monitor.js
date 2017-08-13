@@ -11,12 +11,19 @@ socketServerSocket.on('connect', function(){
     // dang ky socket
    // socketServerSocket.emit('QNT');
     // cho nhan socket data
+    socketServerSocket.emit('subscribe', 'new-block');  
+    var tick=0;
+    setInterval(function(){
+        tick=tick+1;
+    },1000)
     socketServerSocket.on('new-block', function(data){
-        console.log('socketServerSocket receive data: ', data);
+        console.log('socketServerSocket receive data: ', data.number + " timestamp: " +data.timestamp + "time: " +tick +"s");
+        tick=0;
     });
+
 });
 socketServerSocket.on('disconnect', function(){
-    console.log('socketServerSocket disconnected');   
+    console.log('socketServerSocket disconnected');  
 });
 
 // monitor parser
