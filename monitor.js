@@ -19,6 +19,7 @@ socketServerSocket.on('connect', function(){
     socketServerSocket.on('new-block', function(data){
         console.log('socketServerSocket receive data: ', data.number + " timestamp: " +data.timestamp + "time: " +tick +"s");
         tick=0;
+        tick=1;
     });
 
 });
