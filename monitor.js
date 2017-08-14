@@ -1,64 +1,148 @@
+var Web3 = require('web3');
+
+var sendEmail = require('./mail');
+
+var web3 = new Web3(new Web3.providers.HttpProvider('http://172.104.57.227:8545'));
+
+
 var config = require('./config')
 // implement socket here
 var fullNodeSocket = require('socket.io-client')(config.fullnodeSocket);
 var parserSocket = require('socket.io-client')(config.parserSocket);
 var socketServerSocket = require('socket.io-client')(config.socketServer);
-var etherCurrentBlockUrl = require('socket.io-client')(config.etherCurrentBlockUrl);
+
+var fullNodeBlock = null; // number
+var parserBlock = null; // number
+var socketBlock = null; // number
+
+var fullNodeTimestamp = null; // timestamp in milisecond
+var parserTimestamp = null; // timestamp in milisecond
+var socketTimestamp = null; // timestamp in milisecond
+
+var expectedTimestamp = 5 * 60 * 1000; // timestamp in milisecond
+
+var ethRequestTime = 10 * 1000; // timestamp in milisecond
 
 // monitor socket server   
-socketServerSocket.on('connect', function(){
+socketServerSocket.on('connect', function () {
     console.log("socket conect server")
     // dang ky socket
-   // socketServerSocket.emit('QNT');
+    socketServerSocket.emit('subscribe', 'new-block');
     // cho nhan socket data
-    socketServerSocket.emit('subscribe', 'new-block');  
-    var tick=0;
-    setInterval(function(){
-        tick=tick+1;
-    },1000)
-    socketServerSocket.on('new-block', function(data){
-        console.log('socketServerSocket receive data: ', data.number + " timestamp: " +data.timestamp + "time: " +tick +"s");
-        tick=0;
-    });
+    socketServerSocket.on('new-block', function (data) {
+        if (data && data.number) {
+            var num = (typeof data.number === 'string' && data.number.slice(0, 2) === '0x' ? parseInt(data.number.toString(16)) : parseInt(data.number));
+            if (!isNaN(num) && num > 0) {
+                socketBlock = num;
+                socketTimestamp = (new Date().getTime());
+                console.log('==============================================================================');
+                console.log('[DEBUG] socketBlock: ', socketBlock);
+                console.log('[DEBUG] socketTimestamp: ', new Date(socketTimestamp));
+            }
+        }
+    })
 
 });
-socketServerSocket.on('disconnect', function(){
-    console.log('socketServerSocket disconnected');  
+
+
+socketServerSocket.on('disconnect', function () {
+    console.log('socketServerSocket disconnected');
 });
 
 // monitor parser
-// parserSocket.on('connect', function(){
-//     // dang ky socket
-//     parserSocket.emit('subscribe', 'new-block');
-//     // cho nhan socket data
-//     parserSocket.on('new-block', function(data){
-//         console.log('parserSocket receive data: ', data);
-//     });
-// });
-// parserSocket.on('disconnect', function(){
-//     console.log('parserSocket disconnected');
-// });
+parserSocket.on('connect', function () {
+    // dang ky socket
+    parserSocket.emit('subscribe', 'new-block');
+    // cho nhan socket data
+    parserSocket.on('new-block', function (data) {
+        if (data && data.number) {
+            var num = (typeof data.number === 'string' && data.number.slice(0, 2) === '0x' ? parseInt(data.number.toString(16)) : parseInt(data.number));
+            if (!isNaN(num) && num > 0) {
+                parserBlock = num;
+                parserTimestamp = (new Date().getTime());
+                console.log('==============================================================================');
+                console.log('[DEBUG] parserBlock: ', parserBlock);
+                console.log('[DEBUG] parserTimestamp: ', new Date(parserTimestamp));
+            }
+        }
+    });
+});
+parserSocket.on('disconnect', function () {
+    console.log('parserSocket disconnected');
+});
 
 // monitor full node
-// fullNodeSocket.on('connect', function(){
-//     // dang ky socket
-//     fullNodeSocket.emit('QNT');
-//     // cho nhan socket data
-//     fullNodeSocket.on('new-block', function(data){
-//         console.log('parserSocket receive data: ', data);
-//     });
-// });
-// fullNodeSocket.on('disconnect', function(){
-//     console.log('parserSocket disconnected');
-// });
+//can be 'latest' or 'pending'
+var filter = web3.eth.filter({
+    fromBlock: 'latest',
+    toBlock: 'latest',
+});
+//watch for changes
+filter.watch(function (error, result) {
+    console.log('error from full-node: ', error);
+    // console.log('result from full-node: ', result);
+    if (!error && result && result.blockNumber) {
+        var num = (typeof result.blockNumber === 'string' && result.blockNumber.slice(0, 2) === '0x' ? parseInt(result.blockNumber.toString(16)) : parseInt(result.blockNumber));
+        if (!isNaN(num) && num > 0) {
+            fullNodeBlock = num;
+            fullNodeTimestamp = (new Date().getTime());
+            console.log('==============================================================================');
+            console.log('[DEBUG] fullNodeBlock: ', fullNodeBlock);
+            console.log('[DEBUG] fullNodeTimestamp: ', new Date(fullNodeTimestamp));
+        }
+    }
+});
 
+// request Etherscan
+function startETH() {
+    setInterval(function () {
+        fetch(config.etherCurrentBlockUrl)
+            .then(res => res.json())
+            .then(data => {
+                console.log('[DEBUG] fetch data: ', data);
+                if (data && data.result) {
+                    var num = (typeof data.result === 'string' && data.result.slice(0, 2) === '0x' ? parseInt(data.result.toString(16)) : parseInt(data.result));
+                    if (!isNaN(num) && num > 0) {
+                        var ethTimestamp = (new Date().getTime());
+                        console.log('==============================================================================');
+                        console.log('[DEBUG] ethBlock: ', num);
+                        console.log('[DEBUG] ethTimestamp: ', new Date(ethTimestamp));
+
+                        // check compare to full-node
+                        if (fullNodeBlock !== null && num > fullNodeBlock && ethTimestamp - expectedTimestamp > fullNodeTimestamp) {
+                            // send email to notify that fullnode delay
+                            console.log('==============================================================================');
+                            console.log('[DEBUG] send email to notify that fullnode delay ');
+
+                            sendEmail(config.adminEmail, 'Fullnode error', 'test abcxyz', function (sErr, sResult) {
+                                console.log('==============================================================================');
+                                console.log('[DEBUG] send email error: ', sErr);
+                                console.log('[DEBUG] send email result: ', sResult);
+                            });
+                        }
+
+                        // check compare to parser
+                        if (parserBlock !== null && num > parserBlock && ethTimestamp - expectedTimestamp > parserTimestamp) {
+                            // send email to notify that parser delay
+                            console.log('==============================================================================');
+                            console.log('[DEBUG] send email to notify that parser delay ');
+                        }
+
+                        // check compare to socket
+                        if (socketBlock !== null && num > socketBlock && ethTimestamp - expectedTimestamp > socketTimestamp) {
+                            // send email to notify that socket server delay
+                            console.log('==============================================================================');
+                            console.log('[DEBUG] send email to notify that socket server delay ');
+                        }
+                    }
+                }
+            })
+    }, ethRequestTime)
+}
 
 // -----------------------
 function start() {
-    fetch('https://ropsten.etherscan.io/api?module=proxy&action=eth_blockNumber')
-    .then(res=>res.json())
-    .then(z=>{
-        console.log(z)
-    })
+    startETH();
 }
-module.exports = start
+// -----------------------
+module.exports = start;

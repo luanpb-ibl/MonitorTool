@@ -1,7 +1,8 @@
 Build monitor script cho fullnode, blockparser, socket
 
 
-Mục đích: kiểm tra block hiện tại của fullnode và blockparser cũng như socket có trễ hơn so với etherscan hay không. Nếu trễ hơn N phút (ví dụ 5 phút) thì sẽ gửi thông báo cho 1 list email.
+Mục đích: kiểm tra block hiện tại của fullnode và blockparser cũng như socket có trễ hơn so với etherscan hay không. 
+Nếu trễ hơn N phút (ví dụ 5 phút) thì sẽ gửi thông báo cho 1 list email.
 
 Hướng dẫn:
 NodeJS app

@@ -1,3 +1,8 @@
+// print log for promise that unhandle rejection
+process.on('unhandledRejection', (e) => {
+  console.log('unhandledRejection', e);
+});
+
 // require libs
 require('./polifill')
 
@@ -11,6 +16,5 @@ app.get('/*', function (req, res) {
   res.send('Hi there!')
 })
 app.listen(3000, function () {
-  console.log('Example app listening on port 3000!')
   monitor();
 })
