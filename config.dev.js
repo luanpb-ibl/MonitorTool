@@ -8,7 +8,7 @@ var config = {
         host: "smtp.gmail.com",
         port: 587,
         ignoreTLS: false,
-        secure: false,
+        secure: false,// secure:true for port 465, secure:false for port 587
         auth: {
             user: "mrdamtn1@gmail.com",
             pass: "damyur!123",
