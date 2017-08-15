@@ -2,14 +2,15 @@ var Web3 = require('web3');
 
 var sendEmail = require('./mail');
 
-var web3 = new Web3(new Web3.providers.HttpProvider('http://172.104.57.227:8545'));
 
 
 var config = require('./config')
+var configURLs = require('./config').ROPSTEN_TESTNET; //testnest
 // implement socket here
-var fullNodeSocket = require('socket.io-client')(config.fullnodeSocket);
-var parserSocket = require('socket.io-client')(config.parserSocket);
-var socketServerSocket = require('socket.io-client')(config.socketServer);
+//var fullNodeSocket = require('socket.io-client')(configURLs.fullnodeSocket);
+var web3 = new Web3(new Web3.providers.HttpProvider(configURLs.fullnodeSocket));
+var parserSocket = require('socket.io-client')(configURLs.parserSocket);
+var socketServerSocket = require('socket.io-client')(configURLs.socketServer);
 
 var fullNodeBlock = null; // number
 var parserBlock = null; // number
@@ -19,7 +20,7 @@ var fullNodeTimestamp = null; // timestamp in milisecond
 var parserTimestamp = null; // timestamp in milisecond
 var socketTimestamp = null; // timestamp in milisecond
 
-var expectedTimestamp = 5 * 60 * 1000; // timestamp in milisecond
+var expectedTimestamp = 5 * 60 * 1000; // timestamp in milisecond 5 minus
 
 var ethRequestTime = 10 * 1000; // timestamp in milisecond
 
@@ -80,7 +81,6 @@ var filter = web3.eth.filter({
 //watch for changes
 filter.watch(function (error, result) {
     console.log('error from full-node: ', error);
-    // console.log('result from full-node: ', result);
     if (!error && result && result.blockNumber) {
         var num = (typeof result.blockNumber === 'string' && result.blockNumber.slice(0, 2) === '0x' ? parseInt(result.blockNumber.toString(16)) : parseInt(result.blockNumber));
         if (!isNaN(num) && num > 0) {
@@ -96,7 +96,7 @@ filter.watch(function (error, result) {
 // request Etherscan
 function startETH() {
     setInterval(function () {
-        fetch(config.etherCurrentBlockUrl)
+        fetch(configURLs.etherCurrentBlockUrl)
             .then(res => res.json())
             .then(data => {
                 console.log('[DEBUG] fetch data: ', data);
@@ -108,17 +108,19 @@ function startETH() {
                         console.log('[DEBUG] ethBlock: ', num);
                         console.log('[DEBUG] ethTimestamp: ', new Date(ethTimestamp));
 
+                        var activeSendMail = function (subject, content) {
+                            sendEmail(config.adminEmail, subject, content, function (sErr, sResult) {
+                                console.log('==============================================================================');
+                                console.log('[DEBUG] send email error: ', sErr);
+                                console.log('[DEBUG] send email result: ', sResult);
+                            });
+                        }
                         // check compare to full-node
                         if (fullNodeBlock !== null && num > fullNodeBlock && ethTimestamp - expectedTimestamp > fullNodeTimestamp) {
                             // send email to notify that fullnode delay
                             console.log('==============================================================================');
                             console.log('[DEBUG] send email to notify that fullnode delay ');
-
-                            sendEmail(config.adminEmail, 'Fullnode error', 'test abcxyz', function (sErr, sResult) {
-                                console.log('==============================================================================');
-                                console.log('[DEBUG] send email error: ', sErr);
-                                console.log('[DEBUG] send email result: ', sResult);
-                            });
+                            activeSendMail("fullnodeError", "Fullnode error");
                         }
 
                         // check compare to parser
@@ -126,6 +128,7 @@ function startETH() {
                             // send email to notify that parser delay
                             console.log('==============================================================================');
                             console.log('[DEBUG] send email to notify that parser delay ');
+                            activeSendMail("parserBlockError", "parserBlock error");
                         }
 
                         // check compare to socket
@@ -133,13 +136,13 @@ function startETH() {
                             // send email to notify that socket server delay
                             console.log('==============================================================================');
                             console.log('[DEBUG] send email to notify that socket server delay ');
+                            activeSendMail("socketBlockError", "socketBlock error");
                         }
                     }
                 }
             })
     }, ethRequestTime)
 }
-
 // -----------------------
 function start() {
     startETH();
